@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Results</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .result-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            width: 60%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #007bff;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+
+        .result-table, .result-table th, .result-table td {
+            border: 1px solid #ddd;
+        }
+
+        .result-table th, .result-table td {
+            padding: 12px;
+            text-align: left;
+        }
+
+        .result-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .action-buttons {
+            margin-top: 30px;
+        }
+
+        .action-buttons a {
+            text-decoration: none;
+            color: white;
+            background-color: #007bff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        .action-buttons a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="result-container">
+        <h2>Quiz Results</h2>
+        <p>Congratulations! You scored <strong>{{ score }}</strong> out of <strong>{{ total_questions }}</strong>.</p>
+
+        <table class="result-table">
+            <thead>
+                <tr>
+                    <th>Question</th>
+                    <th>Your Answer</th>
+                    <th>Correct Answer</th>
+                    <th>Result</th>
+                    <th>Explanation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in results %}
+                <tr>
+                    <td>{{ result.question }}</td>
+                    <td>{{ result.user_answer }}</td>
+                    <td>{{ result.correct_answer }}</td>
+                    <td class="{% if result.is_correct %}correct{% else %}incorrect{% endif %}">
+                        {{ 'Correct' if result.is_correct else 'Incorrect' }}
+                    </td>
+                    <td>{{ result.explanation }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="action-buttons">
+            <a href="{{ url_for('profile') }}">Go to Profile</a>
+        </div>
+    </div>
+
+</body>
+</html>

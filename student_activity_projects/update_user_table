@@ -1,0 +1,72 @@
+import sqlite3
+from datetime import datetime
+
+def update_user_progress_table():
+    db_path = r"C:\backups_projects\student_activity_projects\gcse_maths_quiz.db"  # Adjust path if needed
+
+    try:
+        # Connect to the database
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Step 1: Drop the existing old_user_progress table if it exists
+        cursor.execute("DROP TABLE IF EXISTS old_user_progress;")
+        print("Dropped the old_user_progress table if it existed.")
+
+        # Step 2: Rename the existing user_progress table
+        cursor.execute("ALTER TABLE user_progress RENAME TO old_user_progress;")
+        print("Renamed the existing user_progress table.")
+
+        # Step 3: Create the new user_progress table with 'subtopic', 'date', and 'time' fields
+        cursor.execute('''
+        CREATE TABLE user_progress (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            subtopic TEXT NOT NULL,
+            correct_answers INTEGER DEFAULT 0,
+            total_questions INTEGER DEFAULT 20,
+            percentage REAL DEFAULT 0.0,
+            completed BOOLEAN DEFAULT 0,
+            date TEXT NOT NULL,   -- Date of quiz completion
+            time TEXT NOT NULL,   -- Time of quiz completion
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        ''')
+        print("Created the new user_progress table with date and time fields.")
+
+        # Step 4: Retrieve and insert data from old_user_progress with subtopic name (adjust for existing subtopic data)
+        cursor.execute('SELECT id, user_id, correct_answers, total_questions, percentage, completed FROM old_user_progress')
+        rows = cursor.fetchall()
+
+        # Insert data into the new table
+        for row in rows:
+            # Generate the current date and time
+            current_date = datetime.now().strftime('%Y-%m-%d')
+            current_time = datetime.now().strftime('%H:%M:%S')
+
+            # Since subtopic_name is now directly stored, we assume subtopic name exists in the old data as a TEXT value
+            subtopic_name = "Unknown"  # Replace this with logic to fetch the actual subtopic if you have it
+            cursor.execute('''
+            INSERT INTO user_progress (id, user_id, subtopic, correct_answers, total_questions, percentage, completed, date, time)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+            ''', (row[0], row[1], subtopic_name, row[2], row[3], row[4], row[5], current_date, current_time))
+
+        print("Copied data from old_user_progress to the new user_progress table with subtopic, date, and time fields.")
+
+        # Step 5: Drop the old_user_progress table
+        cursor.execute("DROP TABLE old_user_progress;")
+        print("Dropped the old_user_progress table.")
+
+        # Commit the changes
+        conn.commit()
+        print("Changes committed successfully.")
+
+    except sqlite3.Error as e:
+        print(f"SQLite error: {e}")
+
+    finally:
+        if conn:
+            conn.close()
+
+# Call the function to execute the update
+update_user_progress_table()

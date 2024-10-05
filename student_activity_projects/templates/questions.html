@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body, .quiz-content, .question-number, .question-text, .feedback, .explanation, label {
+            font-family: 'Arial', sans-serif;
+            color: #333;
+        }
+
+        .quiz-content {
+            width: 50%;
+            margin: 0 auto;
+            text-align: left;
+            padding: 20px;
+            border: 2px solid #000;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .question-number {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .question-text {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            font-weight: normal;
+        }
+
+        label {
+            font-size: 1.1em;
+            margin: 10px 0;
+            display: block;
+        }
+
+        .feedback {
+            width: 100%;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
+        }
+
+        .explanation {
+            margin-top: 10px;
+            font-size: 1.2em;
+            color: blue;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .next-button {
+            display: none;
+            margin-top: 20px;
+            font-size: 1.1em;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .next-button:hover {
+            background-color: #0056b3;
+        }
+
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .result-table, .result-table th, .result-table td {
+            border: 1px solid black;
+        }
+        .result-table th, .result-table td {
+            padding: 8px;
+            text-align: left;
+        }
+
+        .return-button {
+            margin-top: 20px;
+            display: block;
+            text-align: center;
+        }
+
+        .navbar {
+            background-color: #007bff;
+        }
+        .navbar-brand, .nav-link {
+            color: white !important;
+        }
+        .navbar-brand:hover, .nav-link:hover {
+            color: #ffdd57 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">The Word Academy</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/profile">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/topics_quizles/maths">Maths Topics</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="quiz-content">
+        <div class="question-number">
+            Q<span id="current-question-number">1</span>
+        </div>
+
+        <h3 id="question-text" class="question-text">{{ questions[0]['question'] }}</h3>
+        <form id="quiz-form">
+            <label><input type="radio" name="answer" value="{{ questions[0]['option1'] }}" onclick="checkAnswer({{ questions[0]['id'] }}, '{{ questions[0]['answer'] | e }}', this.value, '{{ questions[0]['explanation'] | e }}')"> {{ questions[0]['option1'] }}</label>
+            <label><input type="radio" name="answer" value="{{ questions[0]['option2'] }}" onclick="checkAnswer({{ questions[0]['id'] }}, '{{ questions[0]['answer'] | e }}', this.value, '{{ questions[0]['explanation'] | e }}')"> {{ questions[0]['option2'] }}</label>
+            <label><input type="radio" name="answer" value="{{ questions[0]['option3'] }}" onclick="checkAnswer({{ questions[0]['id'] }}, '{{ questions[0]['answer'] | e }}', this.value, '{{ questions[0]['explanation'] | e }}')"> {{ questions[0]['option3'] }}</label>
+            <label><input type="radio" name="answer" value="{{ questions[0]['option4'] }}" onclick="checkAnswer({{ questions[0]['id'] }}, '{{ questions[0]['answer'] | e }}', this.value, '{{ questions[0]['explanation'] | e }}')"> {{ questions[0]['option4'] }}</label>
+        </form>
+
+        <div class="feedback" id="feedback">
+            <p>No answer selected yet.</p>
+        </div>
+
+        <div class="explanation" id="explanation"></div>
+
+        <button id="next-btn" class="next-button" onclick="loadNextQuestion()">Next</button>
+    </div>
+
+    <div id="results-summary" class="quiz-content" style="display:none;">
+        <h3>Quiz Results</h3>
+        <p id="final-score"></p>
+        <table class="result-table">
+            <thead>
+                <tr>
+                    <th>Question</th>
+                    <th>Result</th>
+                    <th>Your Answer</th>
+                    <th>Correct Answer</th>
+                    <th>Explanation</th>
+                </tr>
+            </thead>
+            <tbody id="results-table-body"></tbody>
+        </table>
+        <div class="return-button">
+            <a href="/profile" class="btn btn-primary btn-lg">Return to Profile</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentQuestionIndex = 0;
+        const questions = {{ questions | tojson }};
+        const userAnswers = [];
+
+        function checkAnswer(questionId, correctAnswer, selectedAnswer, explanation) {
+            const feedbackElement = document.getElementById('feedback');
+            const explanationElement = document.getElementById('explanation');
+            const nextButton = document.getElementById('next-btn');
+
+            const isCorrect = selectedAnswer === correctAnswer;
+            userAnswers.push({
+                question: questions[currentQuestionIndex]['question'],
+                userAnswer: selectedAnswer,
+                correctAnswer: correctAnswer,
+                isCorrect: isCorrect
+            });
+
+            if (isCorrect) {
+                feedbackElement.innerHTML = `<p class="correct">Correct!</p>`;
+                explanationElement.innerHTML = "";
+            } else {
+                feedbackElement.innerHTML = `<p class="incorrect">Incorrect! The correct answer is ${correctAnswer}.</p>`;
+                explanationElement.innerHTML = formatExplanation(explanation);
+            }
+
+            const radios = document.querySelectorAll('input[type="radio"]');
+            radios.forEach(radio => radio.disabled = true);
+
+            nextButton.style.display = 'block';
+        }
+
+        function loadNextQuestion() {
+            currentQuestionIndex++;
+            document.getElementById('feedback').innerHTML = "<p>No answer selected yet.</p>";
+            document.getElementById('explanation').innerHTML = "";
+            document.getElementById('next-btn').style.display = 'none';
+
+            document.getElementById('current-question-number').innerHTML = currentQuestionIndex + 1;
+
+            if (currentQuestionIndex < questions.length) {
+                const questionText = document.getElementById('question-text');
+                questionText.innerHTML = questions[currentQuestionIndex]['question'];
+
+                const quizForm = document.getElementById('quiz-form');
+                quizForm.innerHTML = `
+                    <label><input type="radio" name="answer" value="${questions[currentQuestionIndex]['option1']}" onclick="checkAnswer(${questions[currentQuestionIndex]['id']}, '${questions[currentQuestionIndex]['answer']}', this.value, '${questions[currentQuestionIndex]['explanation']}')"> ${questions[currentQuestionIndex]['option1']}</label>
+                    <label><input type="radio" name="answer" value="${questions[currentQuestionIndex]['option2']}" onclick="checkAnswer(${questions[currentQuestionIndex]['id']}, '${questions[currentQuestionIndex]['answer']}', this.value, '${questions[currentQuestionIndex]['explanation']}')"> ${questions[currentQuestionIndex]['option2']}</label>
+                    <label><input type="radio" name="answer" value="${questions[currentQuestionIndex]['option3']}" onclick="checkAnswer(${questions[currentQuestionIndex]['id']}, '${questions[currentQuestionIndex]['answer']}', this.value, '${questions[currentQuestionIndex]['explanation']}')"> ${questions[currentQuestionIndex]['option3']}</label>
+                    <label><input type="radio" name="answer" value="${questions[currentQuestionIndex]['option4']}" onclick="checkAnswer(${questions[currentQuestionIndex]['id']}, '${questions[currentQuestionIndex]['answer']}', this.value, '${questions[currentQuestionIndex]['explanation']}')"> ${questions[currentQuestionIndex]['option4']}</label>
+                `;
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+    // Hide the quiz content and show the results summary
+    document.querySelector('.quiz-content').style.display = 'none';
+    const resultsSummary = document.getElementById('results-summary');
+    resultsSummary.style.display = 'block';
+
+    let correctCount = 0;
+    const resultsTableBody = document.getElementById('results-table-body');
+    resultsTableBody.innerHTML = "";
+
+    userAnswers.forEach(answer => {
+        const explanation = formatExplanation(answer.isCorrect ? '' : questions[currentQuestionIndex - 1]['explanation']);
+        const resultRow = document.createElement('tr');
+        resultRow.innerHTML = `
+            <td>${answer.question}</td>
+            <td class="${answer.isCorrect ? 'correct' : 'incorrect'}">${answer.isCorrect ? 'Correct' : 'Incorrect'}</td>
+            <td>${answer.userAnswer}</td>
+            <td>${answer.correctAnswer}</td>
+            <td>${explanation}</td>
+        `;
+        resultsTableBody.appendChild(resultRow);
+        if (answer.isCorrect) correctCount++;
+    });
+
+    const finalScoreElement = document.getElementById('final-score');
+    finalScoreElement.innerHTML = `You scored ${correctCount} out of ${questions.length} correct.`;
+
+    // Dynamically pass subtopic name (update subtopic_name as needed)
+    const quizData = {
+        subtopic_name: "{{ subtopic }}",  // Use template variable to pass the actual subtopic name
+        correct_answers: correctCount,
+        total_questions: questions.length
+    };
+
+    // Send the data to the backend using fetch
+    fetch('/submit_quiz', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(quizData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            console.log('Quiz results saved successfully.');
+        } else {
+            console.error('Failed to save quiz results:', data.message);
+        }
+    });
+}
+
+
+        function formatExplanation(explanation) {
+            return explanation;
+        }
+    </script>
+</body>
+</html>

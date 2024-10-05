@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz</title>
+    <style>
+        /* Styling for the quiz content */
+        body, .quiz-content, .question-number, .question-text, .feedback, .explanation, label {
+            font-family: 'Arial', sans-serif;
+            color: #333;
+        }
+
+        .quiz-content {
+            width: 50%;
+            margin: 0 auto;
+            text-align: left;
+            padding: 20px;
+            border: 2px solid #000;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .question-number {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .question-text {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-size: 1.1em;
+            margin: 10px 0;
+            display: block;
+        }
+
+        .feedback {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+
+        .correct {
+            color: green;
+        }
+
+        .incorrect {
+            color: red;
+        }
+
+        .explanation {
+            margin-top: 10px;
+            font-size: 1.2em;
+            color: blue;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .next-button {
+            display: none;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .next-button:hover {
+            background-color: #0056b3;
+        }
+
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .result-table, .result-table th, .result-table td {
+            border: 1px solid black;
+        }
+
+        .result-table th, .result-table td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Main quiz content for single question -->
+    <div class="quiz-content">
+        <!-- Display the question number -->
+        <div class="question-number">
+            Q<span id="current-question-number">1</span>
+        </div>
+
+        <h3 id="question-text" class="question-text">{{ questions[0]['question'] }}</h3>
+        
+        <!-- Form for quiz -->
+        <form id="quiz-form" method="POST" action="{{ url_for('submit_quiz') }}">
+            <input type="hidden" name="subject" value="{{ subject }}">
+            <input type="hidden" name="topic" value="{{ topic }}">
+            <input type="hidden" name="subtopic" value="{{ subtopic }}">
+            <input type="hidden" name="score" id="final-score-input" value="0"> <!-- To store the final score -->
+            
+            <label><input type="radio" name="answer" value="{{ questions[0]['option1'] }}" onclick="checkAnswer({{ questions[0]['id'] }}, '{{ questions[0]['answer'] | e }}', this.value, '{{ questions[0]['explanation'] | e }}')"> {{ questions[0]['option1'] }}</label>
+            <label><input type="radio" name="answer" value="{{ questions[0]['option2'] }}" onclick="checkAnswer({{ questions[0]['id'] }}, '{{ questions[0]['answer'] | e }}', this.value, '{{ questions[0]['explanation'] | e }}')"> {{ questions[0]['option2'] }}</label>
+            <label><input type="radio" name="answer" value="{{ questions[0]['option3'] }}" onclick="checkAnswer({{ questions[0]['id'] }}, '{{ questions[0]['answer'] | e }}', this.value, '{{ questions[0]['explanation'] | e }}')"> {{ questions[0]['option3'] }}</label>
+            <label><input type="radio" name="answer" value="{{ questions[0]['option4'] }}" onclick="checkAnswer({{ questions[0]['id'] }}, '{{ questions[0]['answer'] | e }}', this.value, '{{ questions[0]['explanation'] | e }}')"> {{ questions[0]['option4'] }}</label>
+        </form>
+
+        <!-- Live feedback -->
+        <div class="feedback" id="feedback">
+            <p>No answer selected yet.</p>
+        </div>
+
+        <!-- Explanation area -->
+        <div class="explanation" id="explanation"></div>
+
+        <!-- Next Button -->
+        <button id="next-btn" class="next-button" onclick="loadNextQuestion()">Next</button>
+    </div>
+
+    <!-- Final Results Summary -->
+    <div id="results-summary" class="quiz-content" style="display:none;">
+        <h3>Quiz Results</h3>
+        <p id="final-score"></p>
+        <table class="result-table">
+            <thead>
+                <tr>
+                    <th>Question</th>
+                    <th>Result</th>
+                    <th>Your Answer</th>
+                    <th>Correct Answer</th>
+                    <th>Explanation</th>
+                </tr>
+            </thead>
+            <tbody id="results-table-body">
+                <!-- Filled dynamically -->
+            </tbody>
+        </table>
+
+        <!-- Final form submission after the quiz -->
+        <form action="{{ url_for('submit_quiz') }}" method="POST" id="submit-quiz-form">
+            <input type="hidden" name="subject" value="{{ subject }}">
+            <input type="hidden" name="topic" value="{{ topic }}">
+            <input type="hidden" name="subtopic" value="{{ subtopic }}">
+            <input type="hidden" name="score" id="final-score-hidden" value="">
+            <button type="submit" class="next-button" id="submit-quiz-button">Submit Quiz</button>
+        </form>
+    </div>
+
+    <!-- JavaScript Code -->
+    <script>
+        let currentQuestionIndex = 0;
+        const questions = {{ questions | tojson }};
+        const userAnswers = [];
+        let score = 0;  // Track the score
+
+        // Function to trigger button click on "Enter" key press
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent form submission or default behavior
+                const nextButton = document.getElementById('next-btn'); // The Next Button
+                if (nextButton && nextButton.style.display !== 'none') {
+                    nextButton.click(); // Trigger the Next Button click
+                }
+            }
+        });
+
+        function checkAnswer(questionId, correctAnswer, selectedAnswer, explanation) {
+            const feedbackElement = document.getElementById('feedback');
+            const explanationElement = document.getElementById('explanation');
+            const nextButton = document.getElementById('next-btn');
+            
+            if (!selectedAnswer) {
+                feedbackElement.innerHTML = `<p class="incorrect">Please select an answer before proceeding.</p>`;
+                return;  // Stop further execution if no answer is selected
+            }
+
+            const isCorrect = selectedAnswer === correctAnswer;
+            userAnswers.push({
+                question: questions[currentQuestionIndex]['question'],
+                userAnswer: selectedAnswer,
+                correctAnswer: correctAnswer,
+                isCorrect: isCorrect
+            });
+            
+            if (isCorrect) {
+                feedbackElement.innerHTML = `<p class="correct">Correct!</p>`;
+                score++;  // Increase score for correct answers
+            } else {
+                feedbackElement.innerHTML = `<p class="incorrect">Incorrect! The correct answer is ${correctAnswer}.</p>`;
+                explanationElement.innerHTML = formatExplanation(explanation);
+            }
+
+            document.querySelectorAll('input[type="radio"]').forEach(radio => radio.disabled = true);
+            nextButton.style.display = 'block';
+        }
+
+        function loadNextQuestion() {
+            currentQuestionIndex++;
+            document.getElementById('feedback').innerHTML = "<p>No answer selected yet.</p>";
+            document.getElementById('explanation').innerHTML = "";
+            document.getElementById('next-btn').style.display = 'none';
+
+            if (currentQuestionIndex < questions.length) {
+                document.getElementById('current-question-number').innerHTML = currentQuestionIndex + 1;
+                document.getElementById('question-text').innerHTML = questions[currentQuestionIndex]['question'];
+                
+                document.getElementById('quiz-form').innerHTML = `
+                    <label><input type="radio" name="answer" value="${questions[currentQuestionIndex]['option1']}" onclick="checkAnswer(${questions[currentQuestionIndex]['id']}, '${questions[currentQuestionIndex]['answer']}', this.value, '${questions[currentQuestionIndex]['explanation']}')"> ${questions[currentQuestionIndex]['option1']}</label>
+                    <label><input type="radio" name="answer" value="${questions[currentQuestionIndex]['option2']}" onclick="checkAnswer(${questions[currentQuestionIndex]['id']}, '${questions[currentQuestionIndex]['answer']}', this.value, '${questions[currentQuestionIndex]['explanation']}')"> ${questions[currentQuestionIndex]['option2']}</label>
+                    <label><input type="radio" name="answer" value="${questions[currentQuestionIndex]['option3']}" onclick="checkAnswer(${questions[currentQuestionIndex]['id']}, '${questions[currentQuestionIndex]['answer']}', this.value, '${questions[currentQuestionIndex]['explanation']}')"> ${questions[currentQuestionIndex]['option3']}</label>
+                    <label><input type="radio" name="answer" value="${questions[currentQuestionIndex]['option4']}" onclick="checkAnswer(${questions[currentQuestionIndex]['id']}, '${questions[currentQuestionIndex]['answer']}', this.value, '${questions[currentQuestionIndex]['explanation']}')"> ${questions[currentQuestionIndex]['option4']}</label>
+                `;
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.querySelector('.quiz-content').style.display = 'none';
+            const resultsSummary = document.getElementById('results-summary');
+            resultsSummary.style.display = 'block';
+
+            let correctCount = 0;
+            const resultsTableBody = document.getElementById('results-table-body');
+            resultsTableBody.innerHTML = "";
+
+            userAnswers.forEach(answer => {
+                const resultRow = document.createElement('tr');
+                resultRow.innerHTML = `
+                    <td>${answer.question}</td>
+                    <td class="${answer.isCorrect ? 'correct' : 'incorrect'}">${answer.isCorrect ? 'Correct' : 'Incorrect'}</td>
+                    <td>${answer.userAnswer}</td>
+                    <td>${answer.correctAnswer}</td>
+                    <td>${formatExplanation(answer.isCorrect ? '' : questions[currentQuestionIndex - 1]['explanation'])}</td>
+                `;
+                resultsTableBody.appendChild(resultRow);
+                if (answer.isCorrect) correctCount++;
+            });
+
+            document.getElementById('final-score').innerHTML = `You scored ${correctCount} out of ${questions.length} correct.`;
+            document.getElementById('final-score-hidden').value = correctCount;  // Set the hidden score input for submission
+
+            // Disable the submit button after submission to prevent double submit
+            const submitButton = document.getElementById('submit-quiz-button');
+            submitButton.addEventListener('click', function() {
+                submitButton.disabled = true;
+            });
+        }
+
+        function formatExplanation(explanation) {
+            return explanation;
+        }
+    </script>
+</body>
+</html>

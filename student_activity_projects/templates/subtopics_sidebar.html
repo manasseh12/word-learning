@@ -1,0 +1,9 @@
+<ul class="list-group">
+    {% for subtopic in subtopics %}
+        <li class="list-group-item">
+            <a href="{{ url_for('questions', subject=request.path.split('/')[-1], subtopic=subtopic['subtopic'], question_id=1) }}">
+                {{ subtopic['subtopic'] }}
+            </a>
+        </li>
+    {% endfor %}
+</ul>

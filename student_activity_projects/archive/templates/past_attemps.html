@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Past Quiz Attempts</title>
+</head>
+<body>
+
+<h2>Your Past Quiz Attempts</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Subject</th>
+            <th>Topic</th>
+            <th>Subtopic</th>
+            <th>Score</th>
+            <th>Date</th>
+            <th>View Results</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for attempt in attempts %}
+        <tr>
+            <td>{{ attempt.subject }}</td>
+            <td>{{ attempt.topic }}</td>
+            <td>{{ attempt.subtopic }}</td>
+            <td>{{ attempt.score }}/{{ attempt.total_questions }}</td>
+            <td>{{ attempt.attempt_date }}</td>
+            <td><a href="{{ url_for('view_results', attempt_id=attempt.attempt_id) }}">View</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+</body>
+</html>

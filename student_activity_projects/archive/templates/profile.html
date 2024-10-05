@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <style>
+        /* Styling for the profile page */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            margin: 20px auto;
+            max-width: 80%;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #007bff;
+            margin-top: 30px;
+        }
+
+        h3 {
+            margin-top: 20px;
+            color: #555;
+        }
+
+        /* Subjects Section */
+        .subjects ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .subjects ul li {
+            margin: 10px 0;
+        }
+
+        .subjects ul li a {
+            text-decoration: none;
+            color: #007bff;
+            font-size: 1.2em;
+        }
+
+        .subjects ul li a:hover {
+            text-decoration: underline;
+        }
+
+        /* Quiz Attempts Section */
+        .activity-table {
+            margin-top: 20px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .activity-table th, .activity-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .activity-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        /* Add responsive design */
+        @media (max-width: 768px) {
+            .container {
+                width: 90%;
+            }
+
+            .subjects ul li a {
+                font-size: 1em;
+            }
+
+            .activity-table th, .activity-table td {
+                padding: 8px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Welcome, {{ username }}</h1>
+    
+    <!-- Subjects Section -->
+    <section class="subjects">
+        <h2>Your Subjects</h2>
+        <ul>
+            {% for subject in subjects %}
+                <li><a href="{{ url_for('topics', subject=subject['name']) }}">{{ subject['name'] }}</a></li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <!-- Quiz Attempts Section -->
+    <section class="quiz-attempts">
+        <h2>Your Quiz Attempts</h2>
+        {% for subject, activities in student_activities.items() %}
+            <h3>{{ subject }}</h3>
+            <div class="activity-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Topic</th>
+                            <th>Subtopic</th>
+                            <th>Score</th>
+                            <th>Date</th>
+                            <th>Attempt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for activity in activities %}
+                            <tr>
+                                <td>{{ activity.topic }}</td>
+                                <td>{{ activity.subtopic }}</td>
+                                <td>{{ activity.score }}</td>
+                                <td>{{ activity.date_time }}</td>
+                                <td>{{ activity.attempt }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endfor %}
+    </section>
+</div>
+
+</body>
+</html>
